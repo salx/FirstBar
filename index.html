@@ -1,0 +1,147 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link href='styles.css' rel='stylesheet'/>
+		<script src="d3/d3.v3/d3.v3.min.js"></script>
+		<script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.min.js"></script>
+	</head>
+	<body>
+		<script>
+			
+			var margin = {top: 50, right: 10, bottom: 100, left: 90},
+				width = 900 - margin.left - margin.right,
+				height = 500 - margin.top - margin.bottom;
+			//SiFu: das kapier ich nicht ganz, mit den Margins
+
+			var y = d3.scale.linear()
+				.range([height, 0]);
+
+			//trying a 2nd y axis for the population
+			var y2 = d3.scale.linear()
+				.range([height, 0]);
+
+			var x = d3.scale.ordinal()
+				.rangeRoundBands([0,width], 0.2);
+
+			var xAxis = d3.svg.axis()
+				.scale(x)
+				.orient("top");
+			//text label rotation: siehe unten!
+
+			var yAxis = d3.svg.axis()
+				.scale(y)
+				.orient("left");
+
+			var yAxis2 = d3.svg.axis()
+				.scale(y2)
+				.orient("right");
+
+			var tip = d3.tip()
+				.attr("class", "d3-tip")
+				.offset([-10, 0])
+				.html( function(d){return "<text><strong>Ackerflaeche:</strong> <span style='color:orange'>"+ d.aL +"</span></text>" });
+
+			var line = d3.svg.line()
+				.x(function(d) {return x(d.Jahr); })
+				.y(function(d) {return y2(d.PopIn1000); });
+
+			var canvas = d3.select("body")
+						.append("svg")
+						.attr("width", width + margin.left + margin.right)
+						.attr("height", height + margin.top + margin.bottom)
+						// das ändert genau gar nichts an den Margins
+					.append("g")
+    					.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    					// code copy fom mbostock, svg in Gruppe. Ahja, jetzt klappts. Kenn mich aus.
+    		canvas.call(tip);
+
+			d3.json("Bodenverbrauchsindex.json", function (data){
+				//var min = d3.min(data, function(d){return d.aL})-20;
+				
+				y.domain([0, d3.max(data, function(d){return d.aL; }) ]);
+				x.domain(data.map(function(d){ return d.Jahr; }) );
+				y2.domain([0, d3.max(data, function(d) {return d.PopIn1000; }) ]);
+
+				var groups = canvas.selectAll("g.aL")
+							.data(data)
+							.enter()
+							.append("g")
+							.attr("class", "aL")
+							.attr("transform", function(d){ return "translate("+x(d.Jahr)+", 0)"; })
+
+					groups.append ("rect")
+						.attr("width", x.rangeBand() )
+						//.attr("x", function (d, i){return x(d.Jahr);})
+						.attr("y", function (d){return y(d.aL ); })
+						.attr("height", function (d){ return height - y(d.aL); })
+						//.attr("fill", "blue")
+						.on("mouseover", tip.show)
+						.on("mouseout", tip.hide);
+
+					/*
+					groups.append("text")
+						.text(function(d){return d.aL;} )
+						.attr("fill", "#fff")
+						.attr("x", function (d){return 0-y(d.aL); })
+						.attr("transform", "rotate(-90)")
+						.attr("dy", "0.71em")
+						.style("text-anchor", "end")
+					*/
+				/*Line-Chart
+				canvas.append("path")
+					.datum(data)
+					.attr("class", "line")
+					.attr("d", line)
+				*/
+
+				//Axes, Ticks and Explanation Label at y-axis
+				canvas.append("g")
+					.attr("class", "x axis")
+					.attr("transform", "translate(0,360)")
+					//siFu: wie kann ich den y Wert dynamisch so vergeben, dass der Abstand zwischen Balken und Achse gleich bleibt, selbst wenn ich die Größe des SVG verändere?
+					.call(xAxis)
+					
+					.selectAll("text")
+					.style("text-anchor", "end")
+					//.style("font-family", "Arial")
+					.attr("transform", "rotate(-90)")
+					.attr("dx", "-0.71em")
+					.attr("dy", "0.92em");
+
+				canvas.append("g")
+					.attr("class", "y axis")
+					.attr("transform", "translate(-15, 0)") 
+					//SiFu: wie geht das schöner? brauch Platz f. Achsen-Text siehe unten
+					.call(yAxis);
+
+				canvas.append("text")
+					.attr("transform", "rotate(-90)")
+					.attr("y", -9)
+					.attr("dy", "0.71em")
+					.style("text-anchor", "end")
+					.style("font-size", "11px")
+					.style("font-weight", "normal")
+					.text("in 1000 Hektar");
+
+					//SiFu: wie machht man das Styling weniger dilletantisch??
+
+					//answer on how to rotate the text-labels: http://www.d3noob.org/2013/01/how-to-rotate-text-labels-for-x-axis-of.html - muss nach dem call passieren
+					//styling eigentlich mit CSS!
+					//Achtung: Achsen ändern sich mit der Rotation & ohne text-anchor gehts nicht!
+					//Alles hier unten wird nicht mehr ausgeführt, wieso? Weil's nicht gruppiert ist?
+					
+					/*
+					.selectAll("path")
+						.style("fill", "none")
+
+					.selectAll("line")
+						.style("fill","none")
+						.style("stroke", "#000")
+						.style("shape-rendering", "crispEdges");
+					*/
+			})
+
+		</script>
+	</body>
+</html>
